@@ -1,0 +1,35 @@
+from nonebot import on_command
+from nonebot.typing import T_State
+from nonebot.adapters import Bot, Event
+import json
+import urllib.request
+from urllib.parse import urlencode
+
+from pydantic.networks import ascii_domain_regex
+
+music = on_command("随机音乐",priority=3)
+@music.handle()
+async def test_handle(bot: Bot, event: Event, state: T_State):
+    groupid=event.group_id
+    url = 'http://api.uomg.com/api/rand.music?'
+    params = {
+            'sort' : '热歌榜',
+            'format' : 'json'
+            }
+    params = urlencode(params)
+    f = urllib.request.urlopen('%s%s' % (url,params))
+    nowapi_call = f.read()
+    a_result = json.loads(nowapi_call)
+    music_name=a_result['data']['name']
+    music_artists=a_result['data']['artistsname']
+    music_url=a_result['data']['url']
+    str='id='
+    num=music_url.find(str)
+    id=music_url[num+3:]
+    print(a_result['data']['url'])
+    print(id)
+    if 'code' in a_result and a_result['code']==1:
+        await bot.call_api("send_msg", **{"message_type": "group", "group_id": groupid,
+                                          "message": '欢迎收听来自 {} 的歌曲: {}'.format(music_artists, music_name)})
+        await bot.call_api("send_msg",**{'message_type':"group","group_id":groupid,"message":'[CQ:music,type=163,id={}]'.format(id)})
+
